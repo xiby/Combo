@@ -5,6 +5,7 @@ from util import LogUtil
 from torchvision import datasets
 from model.Model import Model
 from LearningAgent import LearningAgent
+from util.NetworkUtil import NetworkUtil
 
 logger = LogUtil.getLogger(__file__)
 if __name__ == "__main__":
@@ -23,3 +24,6 @@ if __name__ == "__main__":
     logger.info(T.shape)
     param=agent.recoverModel(T)
     logger.info("test finished")
+    util1 = NetworkUtil()
+    util2 = NetworkUtil()
+    logger.info(util1 == util2)
