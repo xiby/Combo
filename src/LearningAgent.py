@@ -1,11 +1,12 @@
 import torch
 
 from collections import OrderedDict
-from util import LogUtil
+from util import LogUtil, NetworkUtil
 
 logger = LogUtil.getLogger(__file__)
+network = NetworkUtil.NetworkUtil()
 class LearningAgent():
-    def __init__(self, id, segment_id, segment_size, model, loss_fn, optimizor, train_dataloader, test_dataloader):
+    def __init__(self, id, segment_id, segment_size, select_size, model, loss_fn, optimizor, train_dataloader, test_dataloader):
         super().__init__()
         self.id = id
         self.segment_id = segment_id
@@ -19,6 +20,7 @@ class LearningAgent():
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.model.to(self.device)
         self.size = len(self.train_dataloader.dataset)
+        self.select_size = select_size
     def flatten(self):
         '''
         flattern the param
@@ -82,9 +84,28 @@ class LearningAgent():
 
     def aggregation(self):
         '''
-        TODO implement it
+        aggregate each segment
         '''
-        pass
+        segments = network.pull(self.select_size)
+        T = self.flatten()
+        len_t = len(T)
+        reshaped = T.reshape((len_t/self.segment_size), self.segment_size)
+        sumParam = None
+        for index in range(len(segments)):
+            local = reshaped[index]
+            sumSize = self.size
+            for item in segments[index]:
+                sumSize += item['size']
+            sumSeg = (1.0*self.size/sumSize)*local
+            for item in segments[index]:
+                sumSeg += (1.0*item['size']/sumSize)*item['seg']
+            if sumParam is None:
+                sumParam = sumSeg
+            else:
+                sumParam = torch.cat((sumParam, sumSeg))
+        self.param = self.recoverModel(sumParam)
+
+
     def report_segment(self, segmentSize, segment_id):
         '''
         return a dict
